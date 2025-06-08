@@ -43,13 +43,12 @@ def notify_telegram(message):
 
 # === CONFIG SECTION ===
 USE_RANDOM = True  # Set to False to use static tweet
-TWEET_TEXT = "Hello, I’m alive and tweeting!"
+TWEET_TEXT = "أستغفرالله العظيم وأتوب إليه"
 TWEET_LIST = [
-    "Good morning from the bot!",
-    "Another hour, another tweet.",
-    "Stay focused, stay sharp.",
-    "This tweet is automated. Cool, right?",
-    "Tweeting like a machine. Literally."
+    "أستغفرالله العظيم",
+    "| أستغفرالله العظيم وأتوب إليه |",
+    "أستغفرالله العظيم وأتوب إليه",
+    "أستغفرالله العظيم وأتوب إليه |♥️🌙"
 ]
 
 
