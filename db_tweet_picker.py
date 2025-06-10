@@ -15,7 +15,7 @@ def setup_stdout():
 
 
 # === CONFIG ===
-use_queue = False  # Toggle to test either queue or static
+use_queue = True  # Toggle to test either queue or static
 
 load_dotenv()
 
@@ -52,7 +52,7 @@ def get_queued_tweet():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM queued_tweets WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1")
+    cursor.execute("SELECT * FROM queued_tweets WHERE status = 'pending' AND approved = 1 ORDER BY created_at ASC LIMIT 1")
     tweet = cursor.fetchone()
     conn.close()
 

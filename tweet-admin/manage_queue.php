@@ -6,6 +6,33 @@ if (!isset($_SESSION['user'])) {
 }
 require 'config.php';
 
+$filterStatus = $_GET['status'] ?? '';
+$filterApproval = $_GET['approved'] ?? '';
+
+$whereClauses = [];
+$params = [];
+
+if ($filterStatus !== '') {
+    $whereClauses[] = 'q.status = ?';
+    $params[] = $filterStatus;
+}
+
+if ($filterApproval !== '') {
+    if ($filterApproval === 'pending') {
+        $whereClauses[] = 'q.approved IS NULL';
+    } else {
+        $whereClauses[] = 'q.approved = ?';
+        $params[] = (int)$filterApproval;
+    }
+}
+
+$whereSQL = $whereClauses ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
+
+$stmt = $pdo->prepare("SELECT q.*, u.username FROM queued_tweets q LEFT JOIN users u ON q.created_by = u.id $whereSQL ORDER BY q.approved IS NULL DESC, q.created_at DESC");
+$stmt->execute($params);
+$tweets = $stmt->fetchAll();
+
+
 $userId = $_SESSION['user_id'] ?? 1;
 $username = $_SESSION['user'];
 $role = $_SESSION['role'] ?? 'contributor';
@@ -28,8 +55,18 @@ if (isset($_GET['delete'])) {
 }
 
 // Fetch tweets
-$stmt = $pdo->query("SELECT q.*, u.username FROM queued_tweets q LEFT JOIN users u ON q.created_by = u.id ORDER BY q.created_at DESC");
-$tweets = $stmt->fetchAll();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['change_status_id']) && isset($_POST['new_status'])) {
+        $id = intval($_POST['change_status_id']);
+        $newStatus = $_POST['new_status'] === 'pending' ? null : intval($_POST['new_status']);
+        $stmt = $pdo->prepare("UPDATE queued_tweets SET approved = ? WHERE id = ?");
+        $stmt->execute([$newStatus, $id]);
+    }
+
+
+    header("Location: manage_queue.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -48,6 +85,25 @@ $tweets = $stmt->fetchAll();
             <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded w-full md:w-auto">Add Tweet</button>
         </form>
 
+        <form method="GET" class="mb-6 flex flex-wrap gap-4 items-center">
+            <label class="text-sm">Status:
+                <select name="status" onchange="this.form.submit()" class="ml-1 px-2 py-1 border rounded">
+                    <option value="">All</option>
+                    <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
+                    <option value="posted" <?= $filterStatus === 'posted' ? 'selected' : '' ?>>Posted</option>
+                </select>
+            </label>
+
+            <label class="text-sm">Approval:
+                <select name="approved" onchange="this.form.submit()" class="ml-1 px-2 py-1 border rounded">
+                    <option value="">All</option>
+                    <option value="pending" <?= $filterApproval === 'pending' ? 'selected' : '' ?>>⏳ Pending</option>
+                    <option value="1" <?= $filterApproval === '1' ? 'selected' : '' ?>>✅ Approved</option>
+                    <option value="0" <?= $filterApproval === '0' ? 'selected' : '' ?>>❌ Rejected</option>
+                </select>
+            </label>
+        </form>
+
         <div class="space-y-4">
             <?php foreach ($tweets as $row): ?>
                 <?php
@@ -58,15 +114,31 @@ $tweets = $stmt->fetchAll();
                         default => 'bg-gray-200 text-gray-800'
                     };
                 ?>
-                <div class="p-4 border rounded bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center">
-                    <div class="mb-2 md:mb-0">
-                        <div class="mb-1"><?= htmlspecialchars($row['content']) ?></div>
+                <div class="p-4 border rounded bg-gray-50 space-y-2">
+                    <div>
+                        <div class="mb-1 font-medium text-gray-800"><?= htmlspecialchars($row['content']) ?></div>
                         <div class="text-sm text-gray-500">By <?= htmlspecialchars($row['username'] ?? 'Unknown') ?> — <?= $row['created_at'] ?></div>
                     </div>
-                    <div class="flex items-center space-x-3 mt-2 md:mt-0">
+
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="px-2 py-1 text-sm rounded <?= $badgeColor ?>"><?= ucfirst($status) ?></span>
-                         <?php if ($role === 'admin'): ?>
-                        <a href="?delete=<?= $row['id'] ?>" class="text-red-600 hover:underline text-sm">Delete</a>
+
+                        <?php if ($role === 'admin'): ?>
+                            <div class="flex gap-2 flex-wrap">
+                                
+                                    <form method="POST" class="inline">
+                                        <input type="hidden" name="change_status_id" value="<?= $row['id'] ?>">
+                                        <select name="new_status" onchange="this.form.submit()" class="px-2 py-1 text-sm rounded border bg-white text-gray-800">
+                                            <option value="pending" <?= is_null($row['approved']) ? 'selected' : '' ?>>⏳ Pending</option>
+                                            <option value="1" <?= $row['approved'] === '1' || $row['approved'] === 1 ? 'selected' : '' ?>>✅ Approved</option>
+                                            <option value="0" <?= $row['approved'] === '0' || $row['approved'] === 0 ? 'selected' : '' ?>>❌ Rejected</option>
+                                        </select>
+                                    </form>
+                                <form method="POST">
+                                    <input type="hidden" name="delete" value="<?= $row['id'] ?>">
+                                    <button type="submit" class="bg-red-100 text-red-700 text-sm px-2 py-1 rounded hover:bg-red-200">Delete</button>
+                                </form>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
