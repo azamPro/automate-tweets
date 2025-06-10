@@ -7,7 +7,6 @@ $user = 'username';
 $pass = 'password';
 
 
-
 $charset = 'utf8mb4';
 
 

@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen px-4">
-    <form action="auth.php" method="POST" class="bg-white p-6 sm:p-8 rounded shadow-md w-full max-w-sm sm:max-w-md">
+    <form action="/athkar/auth.php" method="POST" class="bg-white p-6 sm:p-8 rounded shadow-md w-full max-w-sm sm:max-w-md">
         <h2 class="text-2xl font-bold mb-6 text-center">تسجيل الدخول</h2>
 
         <input type="text" name="username" placeholder="اسم المستخدم"

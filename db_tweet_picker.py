@@ -15,7 +15,7 @@ def setup_stdout():
 
 
 # === CONFIG ===
-use_queue = True  # Toggle to test either queue or static
+use_queue = False  # Toggle to test either queue or static
 
 load_dotenv()
 

@@ -123,12 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="px-2 py-1 text-sm rounded <?= $badgeColor ?>"><?= ucfirst($status) ?></span>
 
-                        <?php if ($role === 'admin'): ?>
+                        <?php ?>
                             <div class="flex gap-2 flex-wrap">
                                 
                                     <form method="POST" class="inline">
                                         <input type="hidden" name="change_status_id" value="<?= $row['id'] ?>">
-                                        <select name="new_status" onchange="this.form.submit()" class="px-2 py-1 text-sm rounded border bg-white text-gray-800">
+                                            <select name="new_status" onchange="this.form.submit()" class="px-2 py-1 text-sm rounded border bg-white text-gray-800"
+                                                <?= $role !== 'admin' ? 'disabled' : '' ?>>
                                             <option value="pending" <?= is_null($row['approved']) ? 'selected' : '' ?>>⏳ Pending</option>
                                             <option value="1" <?= $row['approved'] === '1' || $row['approved'] === 1 ? 'selected' : '' ?>>✅ Approved</option>
                                             <option value="0" <?= $row['approved'] === '0' || $row['approved'] === 0 ? 'selected' : '' ?>>❌ Rejected</option>
@@ -136,10 +137,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </form>
                                 <form method="POST">
                                     <input type="hidden" name="delete" value="<?= $row['id'] ?>">
-                                    <button type="submit" class="bg-red-100 text-red-700 text-sm px-2 py-1 rounded hover:bg-red-200">Delete</button>
+                                    <button type="submit"
+                                        class="bg-red-100 text-red-700 text-sm px-2 py-1 rounded <?= $role !== 'admin' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-200' ?>"
+                                        <?= $role !== 'admin' ? 'disabled' : '' ?>>
+                                        Delete
+                                    </button>
                                 </form>
                             </div>
-                        <?php endif; ?>
+                        
                     </div>
                 </div>
             <?php endforeach; ?>

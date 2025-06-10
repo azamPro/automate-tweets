@@ -29,6 +29,8 @@ PASSWORD = os.getenv("TWITTER_PASSWORD")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_PATH = os.path.join(BASE_DIR, "cookies.json")
 
+HEADLESS = True        # set to False for visible browser
+
 
 # ================= START TELEGRAM NOTI ===================
 
@@ -174,7 +176,16 @@ def login_with_cookies_or_fallback():
 
 # === LOGIN ===
 log("Launching browser...")
-driver = webdriver.Chrome()
+# Browser setup
+options = webdriver.ChromeOptions()
+if HEADLESS:
+    options.add_argument("--headless=new")
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+driver = webdriver.Chrome(options=options)
+
 login_with_cookies_or_fallback()
 
 # === COMPOSE TWEET ===
