@@ -6,7 +6,6 @@ $db = 'database_name';
 $user = 'username';
 $pass = 'password';
 
-
 $charset = 'utf8mb4';
 
 

@@ -14,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import unicodedata
 from selenium.common.exceptions import WebDriverException
-from db_tweet_picker import get_queued_tweet, mark_queued_as_posted, get_static_tweets, pick_tweet, mark_static_as_posted
+from db_tweet_picker import  mark_queued_as_posted, pick_tweet, mark_static_as_posted, get_connection
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def remove_non_bmp(text):
@@ -29,7 +29,7 @@ PASSWORD = os.getenv("TWITTER_PASSWORD")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_PATH = os.path.join(BASE_DIR, "cookies.json")
 
-HEADLESS = True        # set to False for visible browser
+HEADLESS = False        # set to False for visible browser
 
 
 # ================= START TELEGRAM NOTI ===================
@@ -37,6 +37,8 @@ HEADLESS = True        # set to False for visible browser
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SEND_TELEGRAM = os.getenv("SEND_TELEGRAM", "False").lower() == "true"
+
+
 
 def notify_telegram(message):
     if not SEND_TELEGRAM or not BOT_TOKEN or not CHAT_ID:
@@ -57,32 +59,24 @@ def notify_telegram(message):
 # === CONFIG SECTION ===
 EMOJI_LIST = [
     "❤️",  # Red heart
-    "💛",  # Yellow heart
-    "💚",  # Green heart
-    "💙",  # Blue heart
-    "💜",  # Purple heart
-    "🖤",  # Black heart
     "✨",  # Sparkles
-    "🌙",  # Crescent moon
     "⭐",  # Star
     "☀️",  # Sun
     "☁️",  # Cloud
     "☕",   # Coffee
-    "🕊️",  # Dove
-    "🕯️",  # Candle
-    "📜",  # Scroll
 ]
+
 def add_random_emoji(text):
     emoji = random.choice(EMOJI_LIST)
     if "|" in text:
         return f"{text} {emoji}"
     return f"| {text} | {emoji}"
 
-def log_safe(msg):
-    try:
-        log(msg)
-    except UnicodeEncodeError:
-        log("[Skipped emoji output]")
+# def log_safe(msg):
+#     try:
+#         log(msg)
+#     except UnicodeEncodeError:
+#         log("[Skipped emoji output]")
         
 
 
@@ -90,20 +84,40 @@ def log(msg):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted = f"[{now}] {msg}"
     print(formatted)
-    with open("tweet_log.txt", "a", encoding="utf-8") as f:
-        f.write(formatted + "\n")
+    
+    log_path = os.path.join(os.path.dirname(__file__), "tweet_log.txt")
+    # with open(log_path, "a", encoding="utf-8") as f:
+    #     f.write(formatted + "\n")
+     # Write to local file (optional)
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(formatted + "\n")
+    except Exception as e:
+        print(f"File log failed: {e}")
+
+    # Write to database
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO logs (log_time, message) VALUES (%s, %s)", (now, msg))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB log failed: {e}")
 
 
 # === SET TWEET CONTENT ===
 tweet = None
 queued_id = None
 
-picked = pick_tweet()
-if isinstance(picked, dict):  # it came from queued_tweet
-    tweet = picked['content']
-    queued_id = picked['id']
-else:
-    tweet = picked
+picked, source = pick_tweet()
+
+if not picked:
+    log("No tweet available.")
+    exit()
+
+tweet = picked['content']
+tweet_id = picked['id']
 
 
 
@@ -193,7 +207,7 @@ log("Opening tweet composer...")
 
 
 
-if queued_id:
+if source == 'queue':
     try:
         driver.get("https://x.com/compose/post")
         textarea = WebDriverWait(driver, 20).until(
@@ -233,31 +247,28 @@ if queued_id:
 
 posted = False
 remaining_tweets = []
+variant = None
 
-# Fill remaining_tweets only if you're using static mode
-if not queued_id:
-    remaining_tweets = get_static_tweets()
+def post_static(picked):
+    base_content = picked['content']
+    tweet_id = picked['id']
 
-for t in remaining_tweets:
-    base_content = t['content']
-    tweet_id = t['id']
-
-    # First try without emoji
     variations = [base_content] + [f"{base_content} {emoji}" for emoji in EMOJI_LIST]
 
     for variant in variations:
-        log_safe(f"Trying to post: {remove_non_bmp(variant)}")
+        log(f"Trying to post: {remove_non_bmp(variant)}")
 
         try:
             driver.get("https://x.com/compose/post")
             textarea = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'div[data-testid=\"tweetTextarea_0\"]'))
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div[data-testid="tweetTextarea_0"]'))
             )
             textarea.click()
             textarea.send_keys(remove_non_bmp(variant))
 
+
             tweet_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid=\"tweetButton\"]'))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid="tweetButton"]'))
             )
             tweet_button.click()
             log("Clicked Post button.")
@@ -266,24 +277,32 @@ for t in remaining_tweets:
             page_source = driver.page_source
             if "You already said that" in page_source or "Whoops!" in page_source:
                 log("Duplicate tweet detected. Trying next variant...")
-                continue  # Try next variant
+                continue  
 
             # Success
             log("Tweet posted successfully.")
             notify_telegram(f"Tweet posted successfully: {variant}")
-            mark_static_as_posted(tweet_id, variant, status="success")
-            posted = True
-            break
+            return True
 
         except Exception as e:
             log(f"Failed to post variant: {e}")
             continue
+        
+    mark_static_as_posted(tweet_id, variant, status="success")
+    return False
 
-    if posted:
+
+
+while True:
+    picked, source = pick_tweet()
+
+    if not picked or source != 'static':
+        log("No more static tweets or wrong source. Stopping.")
         break
-    else:
-        # All variants failed, mark it to avoid retry
-        mark_static_as_posted(tweet_id, base_content, status="fail", message="All variations rejected.")
+
+    success = post_static(picked)
+    if success:
+        break  
 
 
 time.sleep(5)
