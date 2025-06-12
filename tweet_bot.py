@@ -29,7 +29,7 @@ PASSWORD = os.getenv("TWITTER_PASSWORD")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIE_PATH = os.path.join(BASE_DIR, "cookies.json")
 
-HEADLESS = False        # set to False for visible browser
+HEADLESS = True        # set to False for visible browser
 
 
 # ================= START TELEGRAM NOTI ===================
@@ -72,13 +72,6 @@ def add_random_emoji(text):
         return f"{text} {emoji}"
     return f"| {text} | {emoji}"
 
-# def log_safe(msg):
-#     try:
-#         log(msg)
-#     except UnicodeEncodeError:
-#         log("[Skipped emoji output]")
-        
-
 
 def log(msg):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -86,9 +79,6 @@ def log(msg):
     print(formatted)
     
     log_path = os.path.join(os.path.dirname(__file__), "tweet_log.txt")
-    # with open(log_path, "a", encoding="utf-8") as f:
-    #     f.write(formatted + "\n")
-     # Write to local file (optional)
     try:
         with open(log_path, "a", encoding="utf-8") as f:
             f.write(formatted + "\n")

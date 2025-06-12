@@ -41,7 +41,10 @@ $tweets = $stmt->fetchAll();
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
     <div class="max-w-3xl mx-auto bg-white p-4 md:p-6 rounded shadow">
-        <h1 class="text-2xl font-bold mb-4 text-center md:text-left">Manage Static Tweets</h1>
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">Manage Static Tweets</h1>
+            <a href="dashboard.php" class="text-blue-600 hover:underline text-sm">← Back to Dashboard</a>
+        </div>
 
         <?php if ($role === 'admin'): ?>
         <form method="POST" class="mb-6">
@@ -64,9 +67,6 @@ $tweets = $stmt->fetchAll();
             <?php endforeach; ?>
         </div>
 
-        <div class="mt-6 text-center md:text-left">
-            <a href="dashboard.php" class="text-blue-600 hover:underline">← Back to Dashboard</a>
-        </div>
     </div>
 </body>
 </html>

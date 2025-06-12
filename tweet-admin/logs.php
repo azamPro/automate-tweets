@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['user'])) {
+    header("Location: views/login_form.php");
+    exit;
+}
 require 'config.php'; // $pdo connection
 
 $stmt = $pdo->query("SELECT * FROM logs ORDER BY log_time DESC LIMIT 1000");

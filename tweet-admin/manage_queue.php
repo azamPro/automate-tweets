@@ -28,7 +28,7 @@ if ($filterApproval !== '') {
 
 $whereSQL = $whereClauses ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
-$stmt = $pdo->prepare("SELECT q.*, u.username FROM queued_tweets q LEFT JOIN users u ON q.created_by = u.id $whereSQL ORDER BY q.approved IS NULL DESC, q.created_at DESC");
+$stmt = $pdo->prepare("SELECT q.*, u.username FROM queued_tweets q LEFT JOIN users u ON q.created_by = u.id $whereSQL ORDER BY q.created_at DESC");
 $stmt->execute($params);
 $tweets = $stmt->fetchAll();
 
@@ -78,7 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
     <div class="max-w-3xl mx-auto bg-white p-4 md:p-6 rounded shadow">
-        <h1 class="text-2xl font-bold mb-4 text-center md:text-left">Manage Queued Tweets</h1>
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">Manage Queued Tweets</h1>
+            <a href="dashboard.php" class="text-blue-600 hover:underline text-sm">← Back to Dashboard</a>
+        </div>
 
         <form method="POST" class="mb-6">
             <textarea name="content" class="w-full p-2 border rounded mb-2" placeholder="Enter new queued tweet..." required></textarea>
@@ -126,15 +129,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php ?>
                             <div class="flex gap-2 flex-wrap">
                                 
-                                    <form method="POST" class="inline">
-                                        <input type="hidden" name="change_status_id" value="<?= $row['id'] ?>">
-                                            <select name="new_status" onchange="this.form.submit()" class="px-2 py-1 text-sm rounded border bg-white text-gray-800"
-                                                <?= $role !== 'admin' ? 'disabled' : '' ?>>
-                                            <option value="pending" <?= is_null($row['approved']) ? 'selected' : '' ?>>⏳ Pending</option>
-                                            <option value="1" <?= $row['approved'] === '1' || $row['approved'] === 1 ? 'selected' : '' ?>>✅ Approved</option>
-                                            <option value="0" <?= $row['approved'] === '0' || $row['approved'] === 0 ? 'selected' : '' ?>>❌ Rejected</option>
-                                        </select>
-                                    </form>
+                                    
+                                    <select onchange="updateApproval(this, <?= $row['id'] ?>)"
+                                        class="px-2 py-1 text-sm rounded border bg-white text-gray-800">
+                                    <option value="pending" <?= is_null($row['approved']) ? 'selected' : '' ?>>⏳ Pending</option>
+                                    <option value="1" <?= $row['approved'] === '1' || $row['approved'] === 1 ? 'selected' : '' ?>>✅ Approved</option>
+                                    <option value="0" <?= $row['approved'] === '0' || $row['approved'] === 0 ? 'selected' : '' ?>>❌ Rejected</option>
+                                </select>
+
                                 <form method="POST">
                                     <input type="hidden" name="delete" value="<?= $row['id'] ?>">
                                     <button type="submit"
@@ -150,9 +152,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endforeach; ?>
         </div>
 
-        <div class="mt-6 text-center md:text-left">
-            <a href="dashboard.php" class="text-blue-600 hover:underline">← Back to Dashboard</a>
-        </div>
+        
     </div>
+
+    <div id="toast" class="hidden"></div>
+
+    <script>
+    function showToast(message, color = "green") {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+
+        toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded shadow z-50 text-sm bg-${color}-500`;
+        
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+
+function updateApproval(select, id) {
+    const status = select.value;
+
+    fetch('actions/update_approval.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `id=${id}&status=${status}`
+    })
+    .then(response => {
+        if (!response.ok) throw new Error("Request failed");
+        return response.text();
+    })
+    .then(responseText => {
+        if (responseText.trim() === "OK") {
+            showToast("✅ Approval updated", "green");
+        } else {
+            throw new Error(responseText);
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        showToast("❌ Failed to update approval", "red");
+    });
+}
+
+    </script>
+
 </body>
 </html>

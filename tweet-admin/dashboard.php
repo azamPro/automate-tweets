@@ -35,6 +35,17 @@ $username = is_array($_SESSION['user']) ? ($_SESSION['user']['username'] ?? 'Unk
                 <h2 class="text-lg sm:text-xl font-semibold">Manage Queued Tweets</h2>
                 <p class="text-gray-600 mt-1">Will be posted once and archived.</p>
             </a>
+            <?php if ($_SESSION['role'] === 'admin'): ?>
+                <a href="add_user.php" class="bg-white p-5 rounded-lg shadow hover:bg-purple-50 transition">
+                    <h2 class="text-lg sm:text-xl font-semibold">Add New User</h2>
+                    <p class="text-gray-600 mt-1">Create a new admin or contributor account.</p>
+                </a>
+
+                <a href="logs.php" class="bg-white p-5 rounded-lg shadow hover:bg-yellow-50 transition">
+                    <h2 class="text-lg sm:text-xl font-semibold">View Bot Logs</h2>
+                    <p class="text-gray-600 mt-1">Live status of automated posting.</p>
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 </body>
