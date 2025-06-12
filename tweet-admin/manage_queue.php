@@ -46,13 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
 }
 
 // Delete tweet
-if (isset($_GET['delete'])) {
-    $id = intval($_GET['delete']);
-    $stmt = $pdo->prepare("DELETE FROM queued_tweets WHERE id = ?");
-    $stmt->execute([$id]);
-    header("Location: manage_queue.php");
-    exit;
-}
+// if (isset($_GET['delete'])) {
+//     $id = intval($_GET['delete']);
+//     $stmt = $pdo->prepare("DELETE FROM queued_tweets WHERE id = ?");
+//     $stmt->execute([$id]);
+//     header("Location: manage_queue.php");
+//     exit;
+// }
 
 // Fetch tweets
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -137,14 +137,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="0" <?= $row['approved'] === '0' || $row['approved'] === 0 ? 'selected' : '' ?>>❌ Rejected</option>
                                 </select>
 
-                                <form method="POST">
+                                <!-- <form method="POST">
                                     <input type="hidden" name="delete" value="<?= $row['id'] ?>">
                                     <button type="submit"
                                         class="bg-red-100 text-red-700 text-sm px-2 py-1 rounded <?= $role !== 'admin' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-200' ?>"
                                         <?= $role !== 'admin' ? 'disabled' : '' ?>>
                                         Delete
                                     </button>
-                                </form>
+                                </form> -->
+                                <?php if ($role === 'admin'): ?>
+                                    <button onclick="deleteTweet(<?= $row['id'] ?>, this)" class="bg-red-100 text-red-700 text-sm px-2 py-1 rounded hover:bg-red-200">
+                                        Delete
+                                    </button>
+                                <?php endif; ?>
+
                             </div>
                         
                     </div>
@@ -159,39 +165,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script>
     function showToast(message, color = "green") {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement("div");
+                toast.id = "toast";
+                toast.className = "fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded shadow z-50 text-sm";
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded shadow z-50 text-sm bg-${color}-500`;
+            toast.classList.remove("hidden");
+            setTimeout(() => toast.classList.add("hidden"), 3000);
 
-        toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 text-white px-4 py-2 rounded shadow z-50 text-sm bg-${color}-500`;
-        
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
     }
 
 
-function updateApproval(select, id) {
-    const status = select.value;
+    function updateApproval(select, id) {
+        const status = select.value;
 
-    fetch('actions/update_approval.php', {
-        method: 'POST',
+        fetch('actions/update_approval.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `id=${id}&status=${status}`
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Request failed");
+            return response.text();
+        })
+        .then(responseText => {
+            if (responseText.trim() === "OK") {
+                showToast("✅ Approval updated", "green");
+            } else {
+                throw new Error(responseText);
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            showToast("❌ Failed to update approval", "red");
+        });
+    }
+
+    function deleteTweet(id, btn) {
+    if (!confirm("هل أنت متأكد أنك تريد حذف هذه التغريدة؟")) return;
+
+    fetch("actions/delete_queued.php", {
+        method: "POST",
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `id=${id}&status=${status}`
+        body: `id=${id}`
     })
-    .then(response => {
-        if (!response.ok) throw new Error("Request failed");
-        return response.text();
-    })
-    .then(responseText => {
-        if (responseText.trim() === "OK") {
-            showToast("✅ Approval updated", "green");
+    .then(res => res.text())
+    .then(text => {
+        if (text.trim() === "OK") {
+            showToast("✅ تم الحذف بنجاح", "green");
+            // remove the card from DOM
+            const card = btn.closest('.p-4.border.rounded.bg-gray-50');
+            if (card) card.remove();
         } else {
-            throw new Error(responseText);
+            showToast("❌ فشل في الحذف", "red");
         }
     })
-    .catch(error => {
-        console.error(error);
-        showToast("❌ Failed to update approval", "red");
-    });
+    .catch(() => showToast("❌ حدث خطأ أثناء الحذف", "red"));
 }
 
     </script>

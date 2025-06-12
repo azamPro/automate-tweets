@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# If the requested file/folder doesn't exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route /login/ to login.php
+RewriteRule ^login/?$ login.php [L]
+
+# Optional: pretty routes for other files too
+RewriteRule ^dashboard/?$ dashboard.php [L]
+RewriteRule ^logout/?$ logout.php [L]
+RewriteRule ^manage_queue/?$ manage_queue.php [L]
+RewriteRule ^manage_static/?$ manage_static.php [L]
+RewriteRule ^add_user/?$ add_user.php [L]
+RewriteRule ^logs/?$ logs.php [L]

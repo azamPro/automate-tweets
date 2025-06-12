@@ -1,9 +1,15 @@
 <?php
 
-$host = 'host';
-$db = 'database_name';
-$user = 'username';
-$pass = 'password';
+// $host = 'host';
+// $db = 'database_name';
+// $user = 'username';
+// $pass = 'password';
+
+$host = 'srv1816.hstgr.io';
+$db = 'u889193302_athkar';
+$user = 'u889193302_athkar_databas';
+$pass = '6=j66KVW4^!X';
+
 
 $charset = 'utf8mb4';
 
