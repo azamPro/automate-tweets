@@ -121,7 +121,7 @@ queued_id = tweet_id if source == 'queue' else None
 from datetime import datetime
 
 # ✅ Adjust this list for the hours you want (24h format)
-ALLOWED_HOURS = [0, 8, 16]  # ← every 8 hours
+ALLOWED_HOURS = [1, 8, 18]  # ← every 8 hours
 current_hour = datetime.now().hour
 
 if current_hour not in ALLOWED_HOURS:
