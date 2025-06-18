@@ -25,6 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Please fill all fields correctly.";
     }
 }
+
+// Fetch all users
+$stmt = $pdo->query("SELECT id, username, email, role, created_at FROM users");
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -61,8 +66,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full">Create User</button>
         </form>
+            <h2 class="text-xl font-bold mt-10 mb-4">جميع المستخدمين</h2>
+
+<div class="overflow-x-auto w-full mt-6">
+    <table class="min-w-full border bg-white rounded shadow text-sm">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-2">الاسم</th>
+                    <th class="p-2">البريد</th>
+                    <th class="p-2">الدور</th>
+                    <th class="p-2">تاريخ الإضافة</th>
+                    <th class="p-2">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($users as $user): ?>
+                    <tr class="border-t" id="user-row-<?= $user['id'] ?>">
+                        <td class="p-2"><?= htmlspecialchars($user['username']) ?></td>
+                        <td class="p-2"><?= htmlspecialchars($user['email']) ?></td>
+                        <td class="p-2">
+                            <select onchange="updateRole(<?= $user['id'] ?>, this.value)" class="border rounded px-2 py-1 text-sm">
+                                <option value="admin" <?= $user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                <option value="contributor" <?= $user['role'] === 'contributor' ? 'selected' : '' ?>>Contributor</option>
+                            </select>
+                        </td>
+                        <td class="p-2"><?= $user['created_at'] ?></td>
+                        <td class="p-2 text-center">
+                            <button onclick="deleteUser(<?= $user['id'] ?>)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs">
+                                حذف
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 
         
+        <script>
+function updateRole(userId, role) {
+    fetch('actions/update_user_role.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `id=${userId}&role=${role}`
+    })
+    .then(res => res.text())
+    .then(data => {
+        if (data.trim() === "OK") {
+            showToast("✅ تم تحديث الدور", "green");
+        } else {
+            showToast("❌ حدث خطأ أثناء التحديث", "red");
+        }
+    });
+}
+
+function deleteUser(userId) {
+    if (!confirm("هل أنت متأكد أنك تريد حذف هذا المستخدم؟")) return;
+
+    fetch('actions/delete_user.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `id=${userId}`
+    })
+    .then(res => res.text())
+    .then(data => {
+        if (data.trim() === "OK") {
+            document.getElementById(`user-row-${userId}`).remove();
+            showToast("🗑️ تم حذف المستخدم", "green");
+        } else {
+            showToast("❌ لم يتم الحذف", "red");
+        }
+    });
+}
+
+function showToast(message, color = "green") {
+    let toast = document.getElementById("toast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "toast";
+        toast.className = "fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow text-white text-sm z-50";
+        document.body.appendChild(toast);
+    }
+
+    toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow text-white text-sm z-50 bg-${color}-600`;
+    toast.textContent = message;
+    toast.classList.remove("hidden");
+
+    setTimeout(() => toast.classList.add("hidden"), 3000);
+}
+</script>
+
     </div>
 </body>
 </html>

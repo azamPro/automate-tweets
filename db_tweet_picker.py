@@ -15,7 +15,7 @@ def setup_stdout():
 
 
 # === CONFIG ===
-use_queue = False  # Toggle to test either queue or static
+# use_queue = False  # Toggle to test either queue or static
 
 load_dotenv()
 
@@ -103,17 +103,8 @@ def get_static_tweets():
 
 
 # === PICK TWEET ENTRY POINT ===
-# def pick_tweet():
-#     if use_queue:
-#         tweet = get_queued_tweet()
-#         if tweet:
-#             return tweet
-#     static_list = get_static_tweets()
-#     # to return random tweet from static list
-#     # return random.choice(static_list) if static_list else None
-#     return static_list[0] if static_list else None
 
-def pick_tweet():
+def pick_tweet(use_queue):
     if use_queue:
         tweet = get_queued_tweet()
         if tweet:

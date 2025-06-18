@@ -2,7 +2,9 @@ import json
 import os
 import time
 import random
-import datetime
+# import datetime
+from datetime import datetime
+
 import sys
 import io
 import requests
@@ -16,6 +18,10 @@ import unicodedata
 from selenium.common.exceptions import WebDriverException
 from db_tweet_picker import  mark_queued_as_posted, pick_tweet, mark_static_as_posted, get_connection
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+
+
+
 
 def remove_non_bmp(text):
     return ''.join(c for c in text if ord(c) <= 0xFFFF)
@@ -31,7 +37,7 @@ COOKIE_PATH = os.path.join(BASE_DIR, "cookies.json")
 
 HEADLESS = True        # set to False for visible browser
 
-USE_QUEUE = False  # <-- TRUE for queue tweets, FALSE for static tweets
+USE_QUEUE = True  # <-- TRUE for queue tweets, FALSE for static tweets
 
 
 # ================= START TELEGRAM NOTI ===================
@@ -76,7 +82,8 @@ def add_random_emoji(text):
 
 
 def log(msg):
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted = f"[{now}] {msg}"
     print(formatted)
     
@@ -110,6 +117,16 @@ tweet_id = picked['id']
 queued_id = tweet_id if source == 'queue' else None
 
 
+# for queue just
+from datetime import datetime
+
+# ✅ Adjust this list for the hours you want (24h format)
+ALLOWED_HOURS = [0, 8, 16]  # ← every 8 hours
+current_hour = datetime.now().hour
+
+if current_hour not in ALLOWED_HOURS:
+    log(f"Skipped run at {current_hour}:00 — not in allowed hours.")
+    exit()
 
 
 def save_cookies():
