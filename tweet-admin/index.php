@@ -1,29 +1,48 @@
 <?php
 require 'config.php';
 
-// $submitted = false;
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
-//     $stmt = $pdo->prepare("INSERT INTO queued_tweets (content, status, created_by) VALUES (?, 'pending', NULL)");
-//     $stmt->execute([trim($_POST['content'])]);
-//     $submitted = true;
-// }
 
 $submitted = isset($_GET['success']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
-    $stmt = $pdo->prepare("INSERT INTO queued_tweets (content, status, created_by) VALUES (?, 'pending', NULL)");
-    $stmt->execute([trim($_POST['content'])]);
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
+//     $stmt = $pdo->prepare("INSERT INTO queued_tweets (content, status, created_by) VALUES (?, 'pending', NULL)");
+//     $stmt->execute([trim($_POST['content'])]);
 
-    // Redirect after successful POST to avoid resubmission and fix toast
+//     // Redirect after successful POST to avoid resubmission and fix toast
+//     header("Location: ?success=1");
+//     exit;
+// }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
+    $content = trim($_POST['content']);
+
+    if (mb_strlen($content, 'UTF-8') > 280) {
+        die("❌ المحتوى يتجاوز الحد المسموح به من الأحرف (280).");
+    }
+
+    $stmt = $pdo->prepare("INSERT INTO queued_tweets (content, status, created_by) VALUES (?, 'pending', NULL)");
+    $stmt->execute([$content]);
+
     header("Location: ?success=1");
     exit;
 }
+
 ?>
 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
+   <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T2Q8KG0LGD"></script>
+    <script >
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag("js", new Date());
+
+        gtag("config", "G-T2Q8KG0LGD");
+    </script>
   <title>منصة تذكير بالاستغفار</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -78,9 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
 
 
       <form method="POST" onsubmit="return handleSubmit()" class="space-y-4">
-        <textarea name="content" rows="4" required
+        <textarea id="tweet-content" name="content" rows="4" required maxlength="280"
           class="w-full p-4 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="اكتب تغريدتك هنا..."></textarea>
+          oninput="updateCounter(this)"
+          placeholder="اكتب تغريدتك هنا (280 حرف كحد أقصى)..."></textarea>
+
+        <div class="text-sm text-gray-400 text-right">
+          <!-- <span id="char-count">0</span> / 280 -->
+           <span id="char-count" class="text-sm text-right block text-gray-400">0 / 280</span>
+        </div>
 
         <button type="submit" id="submit-btn"
           class="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl transition-all">
@@ -103,26 +128,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['content'])) {
   </div>
 
   <script>
-//   function handleSubmit() {
-//     const btn = document.getElementById('submit-btn');
-//     const text = document.getElementById('submit-text');
-//     const spinner = document.getElementById('spinner');
-//     btn.disabled = true;
-//     spinner.classList.remove('hidden');
-//     text.textContent = "جاري الإرسال...";
-//     return true;
-//   }
+    const textarea = document.getElementById("tweet-content");
+    const counter = document.getElementById("char-count");
 
-//   // Hide and remove success toast
-//   window.addEventListener("DOMContentLoaded", () => {
-//     const toast = document.getElementById("success-toast");
-//     if (toast) {
-//       setTimeout(() => {
-//         toast.classList.add("opacity-0");
-//         setTimeout(() => toast.remove(), 1000); // remove after fade-out
-//       }, 4000);
-//     }
-//   });
+    textarea.addEventListener("input", () => {
+      counter.textContent = textarea.value.length;
+    });
+
+    function updateCounter(input) {
+  const count = input.value.length;
+  const countElem = document.getElementById("char-count");
+  countElem.textContent = `${count} / 280`;
+  countElem.className = count >= 270 ? "text-red-500 text-sm text-right block" : "text-gray-400 text-sm text-right block";
+}
+
 
   // Only runs if toast exists (means success=1 is in URL)
   document.addEventListener("DOMContentLoaded", () => {
